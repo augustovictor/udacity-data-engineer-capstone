@@ -11,6 +11,7 @@ class CustomPlugin(AirflowPlugin):
         operators.LoadDimensionOperator,
         operators.LoadFactOperator,
         operators.StageToRedshiftOperator,
+         operators.DdlRedshiftOperator,
     ]
 
     helpers = [
