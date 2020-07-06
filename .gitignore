@@ -145,3 +145,6 @@ data
 
 # Config
 *.cfg
+
+# Airflow settings
+airflow_settings.yml
