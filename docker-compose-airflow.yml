@@ -29,6 +29,7 @@ services:
       - ./lol_airflow/create_tables.sql:/usr/local/airflow/create_tables.sql
       # Uncomment to include custom plugins
       - ./lol_airflow/plugins:/usr/local/airflow/plugins
+      - ./lol_airflow/airflow_settings.yml:/usr/local/airflow/airflow_settings.yml
     ports:
       - "8080:8080"
     command: webserver
