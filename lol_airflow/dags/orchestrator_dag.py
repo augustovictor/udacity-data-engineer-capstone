@@ -2,7 +2,17 @@ from datetime import datetime
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 
-dag_id="lol_etl"
+# CONFIG
+AWS_CREDENTIALS_ID = "aws_credentials"
+AWS_REDSHIFT_CONN_ID = "redshift"
+
+RIOT_BASE_URL = ""
+S3_BUCKET = ""
+S3_RAW_DATA_KEY = ""
+S3_TRANSFORMED_RAW_DATA_KEY = ""
+
+
+dag_id = "lol_etl"
 
 default_args = {
     "owner": "Victor Costa",
@@ -19,33 +29,53 @@ dag = DAG(
     schedule_interval="@daily",
 )
 
+# OPERATORS
+
 start_operator = DummyOperator(task_id="Begin_Execution", dag=dag)
 
-fetch_external_data_task = DummyOperator(task_id="fetch_external_data_task", dag=dag)
-stage_external_data_to_s3_task = DummyOperator(task_id="stage_external_data_to_s3_task", dag=dag)
-transform_external_data_task = DummyOperator(task_id="transform_external_data_task", dag=dag)
-run_redshift_ddls_task = DummyOperator(task_id="run_redshift_ddls_task", dag=dag)
-load_transformed_data_to_redshift_staging_tables_task = DummyOperator(task_id="load_transformed_data_to_redshift_staging_tables_task", dag=dag)
-populate_dimension_tables_task = DummyOperator(task_id="populate_dimension_tables_task", dag=dag)
-populate_fact_tables_task = DummyOperator(task_id="populate_fact_tables_task", dag=dag)
-data_quality_check_task = DummyOperator(task_id="data_quality_check_task", dag=dag)
+fetch_external_summoner_data_task = DummyOperator(task_id="Fetch_External_Summoner_Data_Task", dag=dag)
+fetch_external_champion_data_task = DummyOperator(task_id="Fetch_External_Champion_Data_Task", dag=dag)
+fetch_external_item_data_task = DummyOperator(task_id="Fetch_External_Item_Data_Task", dag=dag)
+
+stage_external_data_to_s3_task = DummyOperator(task_id="Stage_External_Data_To_S3_Task", dag=dag)
+
+transform_external_summoner_data_task = DummyOperator(task_id="Transform_External_Summoner_Data_Task", dag=dag)
+transform_external_champion_data_task = DummyOperator(task_id="Transform_External_Champion_Data_Task", dag=dag)
+transform_external_item_data_task = DummyOperator(task_id="Transform_External_Item_Data_Task", dag=dag)
+
+run_redshift_ddls_task = DummyOperator(task_id="Run_Redshift_DDLs_Task", dag=dag)
+
+load_transformed_data_to_redshift_staging_tables_task = DummyOperator(task_id="Load_Transformed_Data_To_Redshift_Staging_Tables_Task", dag=dag)
+load_summoner_dimension_table_task = DummyOperator(task_id="Load_Summoner_Dimension_Table_Task", dag=dag)
+load_champion_dimension_table_task = DummyOperator(task_id="Load_Champion_Dimension_Table_Task", dag=dag)
+load_item_dimension_table_task = DummyOperator(task_id="Load_Item_Dimension_Table_Task", dag=dag)
+load_fact_tables_task = DummyOperator(task_id="Load_Fact_Tables_Task", dag=dag)
+
+data_quality_check_task = DummyOperator(task_id="Data_Quality_Check_Task", dag=dag)
 
 end_operator = DummyOperator(task_id="End_Execution", dag=dag)
 
-start_operator >> fetch_external_data_task
+# DAG
+start_operator >> [
+    fetch_external_summoner_data_task,
+    fetch_external_champion_data_task,
+    fetch_external_item_data_task,
+] >> stage_external_data_to_s3_task
 
-fetch_external_data_task >> stage_external_data_to_s3_task
-
-stage_external_data_to_s3_task >> transform_external_data_task
-
-transform_external_data_task >> run_redshift_ddls_task
+stage_external_data_to_s3_task >> [
+    transform_external_summoner_data_task,
+    transform_external_champion_data_task,
+    transform_external_item_data_task,
+] >> run_redshift_ddls_task
 
 run_redshift_ddls_task >> load_transformed_data_to_redshift_staging_tables_task
 
-load_transformed_data_to_redshift_staging_tables_task >> populate_dimension_tables_task
+load_transformed_data_to_redshift_staging_tables_task >> [
+    load_summoner_dimension_table_task,
+    load_champion_dimension_table_task,
+    load_item_dimension_table_task,
+] >> load_fact_tables_task
 
-populate_dimension_tables_task >> populate_fact_tables_task
-
-populate_fact_tables_task >> data_quality_check_task
+load_fact_tables_task >> data_quality_check_task
 
 data_quality_check_task >> end_operator
