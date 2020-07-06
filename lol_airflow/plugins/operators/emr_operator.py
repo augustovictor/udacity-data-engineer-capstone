@@ -10,6 +10,8 @@ class EmrOperator(BaseOperator):
             **kwargs
     ):
         super(EmrOperator, self).__init__(*args, **kwargs)
+        self.cluster_id = kwargs['cluster_id']
+        self.cluster_dns = kwargs['cluster_dns']
 
     def execute(self, context):
         pass
