@@ -38,6 +38,7 @@ If the database needed to be accessed by 100+ people.
 
 ## Links
 - [Airflow](http://localhost:8080)
+- [Riot API key](https://developer.riotgames.com/)
 
 ## Scope
 The goal of the project is to store available dota2 matches details on a DW so analytical queries can be performed;
@@ -62,7 +63,6 @@ To install poetry with specific version:
 - https://towardsdatascience.com/how-to-use-riot-api-with-python-b93be82dbbd6
 
 ### TODO:
-- [Rubric]()
 - Airflow:
     - Fetch data daily with crawler;
     - Save data as-is to S3 (DL);
