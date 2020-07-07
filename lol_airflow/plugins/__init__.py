@@ -13,6 +13,7 @@ class CustomPlugin(AirflowPlugin):
         operators.StageToRedshiftOperator,
          operators.DdlRedshiftOperator,
          operators.FetchAndStageItemsExternalData,
+         operators.FetchAndStageChampionsExternalData,
          operators.EmrOperator,
     ]
 

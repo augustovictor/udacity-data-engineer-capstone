@@ -6,7 +6,7 @@ from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
 
 from helpers import SqlDmls
-from operators import FetchAndStageItemsExternalData
+from operators import FetchAndStageItemsExternalData, FetchAndStageChampionsExternalData
 from operators import EmrOperator
 from operators import LoadDimensionOperator
 from operators import LoadFactOperator
@@ -18,10 +18,10 @@ AWS_CREDENTIALS_ID = "aws_credentials"
 AWS_REDSHIFT_CONN_ID = "redshift"
 RIOT_BASE_URL = ""
 S3_BUCKET = "udacity-capstone-lol"
-S3_RAW_SUMMONER_DATA_KEY = "s3://udacity-capstone-lol/raw_data/summoner"
-S3_RAW_CHAMPION_DATA_KEY = "s3://udacity-capstone-lol/raw_data/champion"
+S3_RAW_SUMMONER_DATA_KEY = "lol_raw_data/summoner"
+S3_RAW_CHAMPION_DATA_KEY = "lol_raw_data/champion"
 S3_RAW_ITEM_DATA_KEY = "lol_raw_data/item"
-S3_RAW_MATCH_DATA_KEY = "s3://udacity-capstone-lol/raw_data/match"
+S3_RAW_MATCH_DATA_KEY = "lol_raw_data/match"
 S3_TRANSFORMED_RAW_DATA_KEY = ""
 dag_id = "lol_etl"
 cluster_id = "change"
@@ -66,8 +66,12 @@ fetch_external_summoner_data_to_s3_task = DummyOperator(
     task_id="Fetch_External_Summoner_To_S3_Data_Task",
     dag=dag,
 )
-fetch_external_champion_to_s3_data_task = DummyOperator(
-    task_id="Fetch_External_Champion_To_S3_Data_Task",
+fetch_external_champion_to_s3_data_task = FetchAndStageChampionsExternalData(
+    task_id="Fetch_And_Stage_Champions_External_Data",
+    aws_credentials_id=AWS_CREDENTIALS_ID,
+    base_url="http://ddragon.leagueoflegends.com/cdn/10.13.1/data/en_US",
+    s3_bucket=S3_BUCKET,
+    s3_key=S3_RAW_CHAMPION_DATA_KEY,
     dag=dag,
 )
 fetch_external_item_to_s3_data_task = FetchAndStageItemsExternalData(
