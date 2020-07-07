@@ -32,8 +32,8 @@ class FetchAndStageExternalData(BaseOperator):
                 self.logger.info(f"[{i}/{len(keys)}] Fetching data for {key_item}...")
                 current_s3_key = f"{self.s3_key}/{key_item}.json"
 
-                self.s3_hook.load_string(
-                    string_data=str(r.json()),
+                self.s3_hook.load_bytes(
+                    bytes_data=r.content,
                     bucket_name=self.s3_bucket,
                     key=current_s3_key,
                     replace=True,
