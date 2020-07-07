@@ -6,11 +6,14 @@ class EmrOperator(BaseOperator):
     @apply_defaults
     def __init__(
             self,
+            cluster_dns: str,
+            cluster_id: str,
             *args,
             **kwargs
     ):
         super(EmrOperator, self).__init__(*args, **kwargs)
+        self.cluster_dns = cluster_dns
+        self.cluster_id = cluster_id
 
     def execute(self, context):
-        self.cluster_id = context["cluster_id"]
-        self.cluster_dns = context["cluster_dns"]
+        pass

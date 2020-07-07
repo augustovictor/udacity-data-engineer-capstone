@@ -44,7 +44,7 @@ dag = DAG(
 )
 
 log = LoggingMixin().log
-ddl_sql_file_name = '../create_tables.sql'
+ddl_sql_file_name = "../create_tables.sql"
 sql_path = path.join(path.dirname(path.abspath(__file__)), ddl_sql_file_name)
 sql_content = None
 try:
@@ -72,12 +72,10 @@ fetch_external_champion_to_s3_data_task = DummyOperator(
 )
 fetch_external_item_to_s3_data_task = FetchAndStageExternalData(
     task_id="Fetch_External_Item_To_S3_Data_Task",
-    params={
-        "aws_credentials_id": AWS_CREDENTIALS_ID,
-        "s3_bucket": S3_BUCKET,
-        "s3_key": S3_RAW_ITEM_DATA_KEY,
-        "base_url": "http://ddragon.leagueoflegends.com/cdn/10.13.1/data/en_US/item.json",
-    },
+    aws_credentials_id=AWS_CREDENTIALS_ID,
+    base_url="http://ddragon.leagueoflegends.com/cdn/10.13.1/data/en_US/item.json",
+    s3_bucket=S3_BUCKET,
+    s3_key=S3_RAW_ITEM_DATA_KEY,
     dag=dag,
 )
 fetch_external_match_to_s3_data_task = DummyOperator(
@@ -91,25 +89,25 @@ stage_external_data_to_s3_task = DummyOperator(
 transform_external_summoner_data_task = EmrOperator(
     task_id="Transform_External_Summoner_Data_Task",
     dag=dag,
-    params={
-        "cluster_id": cluster_id,
-        "cluster_dns": cluster_dns,
-    }
+    cluster_id=cluster_id,
+    cluster_dns=cluster_dns,
 )
 transform_external_champion_data_task = EmrOperator(
     task_id="Transform_External_Champion_Data_Task",
     dag=dag,
-    params={
-        'cluster_id': "",
-        'cluster_dns': "",
-    },
+    cluster_id=cluster_id,
+    cluster_dns=cluster_dns,
 )
 transform_external_item_data_task = EmrOperator(
     task_id="Transform_External_Item_Data_Task",
+    cluster_id=cluster_id,
+    cluster_dns=cluster_dns,
     dag=dag,
 )
 transform_external_match_data_task = EmrOperator(
     task_id="Transform_External_Match_Data_Task",
+    cluster_id=cluster_id,
+    cluster_dns=cluster_dns,
     dag=dag,
 )
 run_redshift_ddls_task = DdlRedshiftOperator(
