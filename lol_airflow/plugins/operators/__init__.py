@@ -4,7 +4,7 @@ from operators.stage_to_redshift_operator import StageToRedshiftOperator
 from operators.load_dimension import LoadDimensionOperator
 from operators.load_fact import LoadFactOperator
 from operators.ddl_redshift_operator import DdlRedshiftOperator
-from operators.fetch_and_stage_external_data import FetchAndStageExternalData
+from operators.fetch_and_stage_items_external_data import FetchAndStageItemsExternalData
 from operators.emr_operator import EmrOperator
 
 __all__ = [
@@ -14,6 +14,6 @@ __all__ = [
     "LoadFactOperator",
     "StageToRedshiftOperator",
     "DdlRedshiftOperator",
-    "FetchAndStageExternalData",
+    "FetchAndStageItemsExternalData",
     "EmrOperator",
 ]

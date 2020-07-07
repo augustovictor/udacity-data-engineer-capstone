@@ -4,7 +4,7 @@ from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 
 
-class FetchAndStageExternalData(BaseOperator):
+class FetchAndStageItemsExternalData(BaseOperator):
     @apply_defaults
     def __init__(
             self,
@@ -14,7 +14,7 @@ class FetchAndStageExternalData(BaseOperator):
             s3_key: str,
             *args, **kwargs
     ):
-        super(FetchAndStageExternalData, self).__init__(*args, **kwargs)
+        super(FetchAndStageItemsExternalData, self).__init__(*args, **kwargs)
         self.base_url = base_url
         self.s3_bucket = s3_bucket
         self.s3_key = s3_key

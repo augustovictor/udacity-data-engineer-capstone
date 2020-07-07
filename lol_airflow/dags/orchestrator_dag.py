@@ -6,7 +6,7 @@ from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
 
 from helpers import SqlDmls
-from operators import FetchAndStageExternalData
+from operators import FetchAndStageItemsExternalData
 from operators import EmrOperator
 from operators import LoadDimensionOperator
 from operators import LoadFactOperator
@@ -70,8 +70,8 @@ fetch_external_champion_to_s3_data_task = DummyOperator(
     task_id="Fetch_External_Champion_To_S3_Data_Task",
     dag=dag,
 )
-fetch_external_item_to_s3_data_task = FetchAndStageExternalData(
-    task_id="Fetch_External_Item_To_S3_Data_Task",
+fetch_external_item_to_s3_data_task = FetchAndStageItemsExternalData(
+    task_id="Fetch_And_Stage_Items_External_Data",
     aws_credentials_id=AWS_CREDENTIALS_ID,
     base_url="http://ddragon.leagueoflegends.com/cdn/10.13.1/data/en_US/item.json",
     s3_bucket=S3_BUCKET,
