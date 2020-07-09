@@ -6,7 +6,11 @@ from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
 
 from helpers import SqlDmls
-from operators import FetchAndStageItemsExternalData, FetchAndStageChampionsExternalData
+from operators import (
+    FetchAndStageItemsExternalData,
+    FetchAndStageChampionsExternalData,
+    FetchAndStageMatchesExternalData
+)
 from operators import EmrOperator
 from operators import LoadDimensionOperator
 from operators import LoadFactOperator
@@ -62,10 +66,10 @@ start_operator = DummyOperator(
     task_id="Begin_Execution",
     dag=dag,
 )
-fetch_external_summoner_data_to_s3_task = DummyOperator(
-    task_id="Fetch_External_Summoner_To_S3_Data_Task",
-    dag=dag,
-)
+# fetch_external_summoner_data_to_s3_task = DummyOperator(
+#     task_id="Fetch_External_Summoner_To_S3_Data_Task",
+#     dag=dag,
+# )
 fetch_external_champion_to_s3_data_task = FetchAndStageChampionsExternalData(
     task_id="Fetch_And_Stage_Champions_External_Data",
     aws_credentials_id=AWS_CREDENTIALS_ID,
@@ -82,34 +86,36 @@ fetch_external_item_to_s3_data_task = FetchAndStageItemsExternalData(
     s3_key=S3_RAW_ITEM_DATA_KEY,
     dag=dag,
 )
-fetch_external_match_to_s3_data_task = DummyOperator(
+fetch_external_match_to_s3_data_task = FetchAndStageMatchesExternalData(
     task_id="Fetch_External_Match_To_S3_Data_Task",
+    s3_bucket=S3_BUCKET,
+    s3_key=S3_RAW_MATCH_DATA_KEY,
     dag=dag,
 )
 stage_external_data_to_s3_task = DummyOperator(
     task_id="Stage_External_Data_To_S3_Task",
     dag=dag,
 )
-transform_external_summoner_data_task = EmrOperator(
-    task_id="Transform_External_Summoner_Data_Task",
+# transform_external_summoner_data_and_stage_task = EmrOperator(
+#     task_id="Transform_External_Summoner_Data_And_Stage_Task",
+#     dag=dag,
+#     cluster_id=cluster_id,
+#     cluster_dns=cluster_dns,
+# )
+transform_external_champion_data_and_stage_task = EmrOperator(
+    task_id="Transform_External_Champion_Data_And_Stage_Task",
     dag=dag,
     cluster_id=cluster_id,
     cluster_dns=cluster_dns,
 )
-transform_external_champion_data_task = EmrOperator(
-    task_id="Transform_External_Champion_Data_Task",
-    dag=dag,
-    cluster_id=cluster_id,
-    cluster_dns=cluster_dns,
-)
-transform_external_item_data_task = EmrOperator(
-    task_id="Transform_External_Item_Data_Task",
+transform_external_item_data_and_stage_task = EmrOperator(
+    task_id="Transform_External_Item_Data_And_Stage_Task",
     cluster_id=cluster_id,
     cluster_dns=cluster_dns,
     dag=dag,
 )
-transform_external_match_data_task = EmrOperator(
-    task_id="Transform_External_Match_Data_Task",
+transform_external_match_data_and_stage_task = EmrOperator(
+    task_id="Transform_External_Match_Data_And_Stage_Task",
     cluster_id=cluster_id,
     cluster_dns=cluster_dns,
     dag=dag,
@@ -124,13 +130,13 @@ load_transformed_data_to_redshift_staging_tables_task = DummyOperator(
     task_id="Load_Transformed_Data_To_Redshift_Staging_Tables_Task",
     dag=dag,
 )
-load_summoner_dimension_table_task = LoadDimensionOperator(
-    task_id="Load_Summoner_Dimension_Table_Task",
-    redshift_conn_id=AWS_REDSHIFT_CONN_ID,
-    final_table="",
-    dql_sql=SqlDmls.summoner_table_insert,
-    dag=dag,
-)
+# load_summoner_dimension_table_task = LoadDimensionOperator(
+#     task_id="Load_Summoner_Dimension_Table_Task",
+#     redshift_conn_id=AWS_REDSHIFT_CONN_ID,
+#     final_table="",
+#     dql_sql=SqlDmls.summoner_table_insert,
+#     dag=dag,
+# )
 load_champion_dimension_table_task = LoadDimensionOperator(
     task_id="Load_Champion_Dimension_Table_Task",
     redshift_conn_id=AWS_REDSHIFT_CONN_ID,
@@ -165,23 +171,23 @@ end_operator = DummyOperator(
 
 # DAG
 start_operator >> [
-    fetch_external_summoner_data_to_s3_task,
+    # fetch_external_summoner_data_to_s3_task,
     fetch_external_champion_to_s3_data_task,
     fetch_external_item_to_s3_data_task,
     fetch_external_match_to_s3_data_task,
 ] >> stage_external_data_to_s3_task
 
 stage_external_data_to_s3_task >> [
-    transform_external_summoner_data_task,
-    transform_external_champion_data_task,
-    transform_external_item_data_task,
-    transform_external_match_data_task,
+    # transform_external_summoner_data_and_stage_task,
+    transform_external_champion_data_and_stage_task,
+    transform_external_item_data_and_stage_task,
+    transform_external_match_data_and_stage_task,
 ] >> run_redshift_ddls_task
 
 run_redshift_ddls_task >> load_transformed_data_to_redshift_staging_tables_task
 
 load_transformed_data_to_redshift_staging_tables_task >> [
-    load_summoner_dimension_table_task,
+    # load_summoner_dimension_table_task,
     load_champion_dimension_table_task,
     load_item_dimension_table_task,
 ] >> load_fact_match_table_task

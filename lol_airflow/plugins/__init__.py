@@ -14,6 +14,7 @@ class CustomPlugin(AirflowPlugin):
          operators.DdlRedshiftOperator,
          operators.FetchAndStageItemsExternalData,
          operators.FetchAndStageChampionsExternalData,
+         operators.FetchAndStageMatchesExternalData,
          operators.EmrOperator,
     ]
 

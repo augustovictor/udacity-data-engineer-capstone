@@ -7,6 +7,7 @@ from operators.ddl_redshift_operator import DdlRedshiftOperator
 from operators.fetch_and_stage_items_external_data import FetchAndStageItemsExternalData
 from operators.emr_operator import EmrOperator
 from operators.fetch_and_stage_champions_external_data import FetchAndStageChampionsExternalData
+from operators.fetch_and_stage_matches_external_data import FetchAndStageMatchesExternalData
 
 __all__ = [
     "DataQualityOperator",
@@ -17,5 +18,6 @@ __all__ = [
     "DdlRedshiftOperator",
     "FetchAndStageItemsExternalData",
     "FetchAndStageChampionsExternalData",
+    "FetchAndStageMatchesExternalData",
     "EmrOperator",
 ]

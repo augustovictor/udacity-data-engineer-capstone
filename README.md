@@ -78,3 +78,22 @@ To install poetry with specific version:
         - For the fact tables use the `append-only` approach;
     - Run quality checks;
     - Make queries;
+
+
+## Rubric
+- [OK] Scoping the Project
+- Addressing Other Scenarios
+    - [] The data was increased by 100x.
+    - [OK] The pipelines would be run on a daily basis by 7 am every day
+    - [] The database needed to be accessed by 100+ people.
+- [OK] Defending Decisions
+- [OK] Project code is clean and modular
+- [] Quality Checks
+- Data Model
+    - [OK] The ETL processes result in the data model outlined in the write-up.
+    - [OK] A data dictionary for the final data model is included.
+    - [OK] The data model is appropriate for the identified purpose.
+- Datasets
+    - [OK] At least 2 data sources
+    - [OK] More than 1 million lines of data.
+    - [OK] At least two data sources/formats (csv, api, json)
