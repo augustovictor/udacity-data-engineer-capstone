@@ -9,4 +9,5 @@ class SqlDmls:
     """)
 
     match_table_insert = ("""
+    SELECT * FROM staging_game_match
     """)

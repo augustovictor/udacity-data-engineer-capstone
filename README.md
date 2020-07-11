@@ -64,20 +64,20 @@ To install poetry with specific version:
 
 ### TODO:
 - Airflow:
-    - Fetch data daily with crawler;
-    - Save data as-is to S3 (DL);
-    - Transform the raw data with spark and save back to S3 in parquet format(stage area);
+    - [] Fetch data daily with crawler;
+    - [OK] Save data as-is to S3 (DL);
+    - [OK] Transform the raw data with spark and save back to S3 in parquet format(stage area);
     - Run DDLs to Redshift;
-        - Tables: `staging_game_match`, `dim_champion`, `dim_item`, `dim_summoner`, `fact_game_match`
-        - Tables should have appropriate `data types`, `distkeys` and `sortkeys`;
-        - Distkeys and Sortkeys strategies: TODO
-    - Create a `json_paths` file?
-    - COPY data from s3 to stage table `staging_game_match` in S3;
+        - [OK] Tables: `staging_game_match`, `dim_champion`, `dim_item`, `dim_summoner`, `fact_game_match`
+        - [] Tables should have appropriate `data types`, `distkeys` and `sortkeys`;
+        - [] Distkeys and Sortkeys strategies: TODO
+    - [X] Create a `json_paths` file? Not necessary since we're not importing json data;
+    - [OK] COPY data from s3 to stage table `staging_game_match` in S3;
     - Run DMLs to populate dimension and fact tables;
-        - For the dim tables use the `truncate-insert` approach;
-        - For the fact tables use the `append-only` approach;
-    - Run quality checks;
-    - Make queries;
+        - [] For the dim tables use the `truncate-insert` approach;
+        - [OK] For the fact tables use the `append-only` approach;
+    - [] Run quality checks;
+    - [] Make adhoc queries;
 
 
 ## Rubric
@@ -97,3 +97,61 @@ To install poetry with specific version:
     - [OK] At least 2 data sources
     - [OK] More than 1 million lines of data.
     - [OK] At least two data sources/formats (csv, api, json)
+
+### Redshift
+- To get data copied from s3 to redshift (at least when using parquet) you should modify the cluster to add an IAM ROLE through `actions` > `Manage IAM roles` ;
+    - Add a role that has permission to TODO;
+```
+  -----------------------------------------------
+  error:  User arn:aws:redshift:us-west-2:782148276433:dbuser:sparkify-dw/sparkifyuser is not authorized to assume IAM Role aws_iam_role=arn:aws:iam::782148276433:role/sparkify.dw.role
+  code:      8001
+  context:   IAM Role=aws_iam_role=arn:aws:iam::782148276433:role/sparkify.dw.role
+  query:     913
+  location:  xen_aws_credentials_mgr.cpp:321
+  process:   padbmaster [pid=25930]
+  -----------------------------------------------
+```
+- `statement_timeout`:
+    - Run `show all;` command in redshift query editor;
+    - `statement_timeout` = 0 means there is not timeout;
+- When importing data from S3 to Redshift tables an error was occurring. Unsuccessfuull investigation steps:
+    - Shorten parquet parts size;
+    - Remove `repartition` statement from spark code before saving to s3 in parquet format;
+    - Save only a subset of the fields;
+    - Solution:
+        - Save data as json in S3 then run `COPY` command on that; I realized that `ts` field was resulting in wrong `TIMESTAMP` result;
+            - Some other fields had wrong specified sizes. Eg: `game_type` field was VARCHAR(10). After increasing wrong max sizes, all worked fine;
+        - Further considerations:
+            - Really bad feedback on `COPY` command error. Could only see what was going wrong after changing the output format from `parquet` to `json`, and verify errors in `stl_load_errors` redshift table;
+            - Would it be a good idea to import a sampling data first?
+                - That would not resolve the root cause since the sampling could have only valid data;
+            - Would it be worth importing the whole data as `json` then after all works well change implementation and save data as `parquet`?
+                - This approach does not scale and takes a lot more time to import the data;
+### Spark
+- `pyspark` and `spark` need to match versions;
+- Use findspark module;
+- [SparkUI](http://localhost:4040/jobs)
+
+### Running the project:
+1. Start redshift cluster: `make redshift-resume`
+1. Start emr cluster: `make emr-cluster-up`
+1. Terminate emr cluster: `make emr-cluster-down cluster-id=<CLUSTER_ID>`
+1. Pause redshift cluster: `make redshift-pause`
+
+#### References
+
+- [Optimizing Performance](https://docs.aws.amazon.com/AmazonS3/latest/dev/optimizing-performance.html)
+- [Hadoop Scalability and Performance Testing in Heterogeneous Clusters](https://www.researchgate.net/publication/291356207_Hadoop_Scalability_and_Performance_Testing_in_Heterogeneous_Clusters)
+- [Scaling Uber’s Apache Hadoop Distributed File System for Growth](https://eng.uber.com/scaling-hdfs)
+- [Data dictionary](https://www.tutorialspoint.com/What-is-Data-Dictionary)
+- [Building An Analytics Data Pipeline In Python](https://www.dataquest.io/blog/data-pipelines-tutorial)
+- [Redshift data types](https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html)
+- [Redshift numeric types](https://docs.aws.amazon.com/redshift/latest/dg/r_Numeric_types201.html)
+- [Pyspark extension types](https://docs.aws.amazon.com/glue/latest/dg/aws-glue-api-crawler-pyspark-extensions-types.html)
+- [Remotely submit emr spark job](https://aws.amazon.com/premiumsupport/knowledge-center/emr-submit-spark-job-remote-cluster/)
+- [Terminate emr cluster](https://docs.aws.amazon.com/emr/latest/ManagementGuide/UsingEMR_TerminateJobFlow.html)
+- [Airflow ssh operator](https://airflow.readthedocs.io/en/stable/howto/connection/ssh.html)
+- [Authorizing COPY, UNLOAD, and CREATE EXTERNAL SCHEMA operations using IAM roles](https://docs.aws.amazon.com/redshift/latest/mgmt/copy-unload-iam-role.html)
+- [Redshift server configuration](https://docs.aws.amazon.com/redshift/latest/dg/t_Modifying_the_default_settings.html)
+    - [Redshift statement timeout](https://docs.aws.amazon.com/redshift/latest/dg/r_statement_timeout.html)
+- [Airflow repo](https://github.com/puckel/docker-airflow)

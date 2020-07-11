@@ -1,6 +1,10 @@
 version: '3'
 services:
   postgres:
+    sysctls:
+      - net.ipv4.tcp_keepalive_time=200
+      - net.ipv4.tcp_keepalive_intvl=200
+      - net.ipv4.tcp_keepalive_probes=5
     image: postgres:9.6
     environment:
       - POSTGRES_USER=airflow

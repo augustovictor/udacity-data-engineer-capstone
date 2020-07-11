@@ -23,7 +23,7 @@ class LoadFactOperator(BaseOperator):
         super(LoadFactOperator, self).__init__(*args, **kwargs)
         self.dql_sql = dql_sql
         self.target_table = final_table
-        self.redshitft_conn = PostgresHook(postgres_conn_id=redshift_conn_id)
+        self.redshift_conn = PostgresHook(postgres_conn_id=redshift_conn_id)
 
     def execute(self, context):
         self.log.info(f'Running {self.__class__.__name__}')
@@ -31,4 +31,4 @@ class LoadFactOperator(BaseOperator):
         formatted_sql = self.insert_sql.format(self.target_table, self.dql_sql)
 
         self.log.info(f"Loading fact table '{self.target_table}'")
-        self.redshitft_conn.run(formatted_sql)
+        self.redshift_conn.run(formatted_sql)
