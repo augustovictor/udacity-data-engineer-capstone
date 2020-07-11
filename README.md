@@ -76,8 +76,15 @@ To install poetry with specific version:
     - Run DMLs to populate dimension and fact tables;
         - [] For the dim tables use the `truncate-insert` approach;
         - [OK] For the fact tables use the `append-only` approach;
-    - [] Run quality checks;
-    - [] Make adhoc queries;
+    - [OK] Run quality checks;
+    - [OK] Make adhoc queries;
+        - Sample queries:
+            - Question: How many teams that scored the first blood also won the match?
+                - DQL: `SELECT
+                            COUNT(team_win)
+                        FROM fact_game_match
+                        WHERE team_win AND team_first_blood
+                        GROUP BY team_win;`
 
 
 ## Rubric
