@@ -68,9 +68,8 @@ class StageToRedshiftOperator(BaseOperator):
             s3_path:str,
             iam_redshift_role: str,
     ) -> str:
-        # result = ("COPY {} FROM '{}' IAM_ROLE '{}' FORMAT AS PARQUET;"
-        #           .format(target_table, s3_path, iam_redshift_role))
-        result = ("COPY {} FROM '{}' CREDENTIALS '{}' json 'auto' REGION '{}'"
-            .format(target_table, s3_path, iam_redshift_role, "us-west-2"))
+        result_parquet = ("COPY {} FROM '{}' IAM_ROLE '{}' FORMAT AS PARQUET;".format(target_table, s3_path, iam_redshift_role))
+        result_json = ("COPY {} FROM '{}' CREDENTIALS '{}' json 'auto' REGION '{}'".format(target_table, s3_path, iam_redshift_role, "us-west-2"))
 
+        result = result_json
         return result

@@ -134,16 +134,23 @@ To install poetry with specific version:
                 - That would not resolve the root cause since the sampling could have only valid data;
             - Would it be worth importing the whole data as `json` then after all works well change implementation and save data as `parquet`?
                 - This approach does not scale and takes a lot more time to import the data;
-### Spark
+### EMR/spark
 - `pyspark` and `spark` need to match versions;
 - Use findspark module;
 - [SparkUI](http://localhost:4040/jobs)
+- The aws connection id for EMR operators should have permissions of TODO to interact with EMR cluster;
+- To run a pyspark application with airflow we need first to package our application and make it available;
+    - Then we need to reference it from our airflow emr task;
+- Verify logs under:
+- `JOB_FLOW_OVERRIDES` can have the following keys: "Classification", must be one of: Name, LogUri, AdditionalInfo, AmiVersion, ReleaseLabel, Instances, Steps, BootstrapActions, SupportedProducts, NewSupportedProducts, Applications, Configurations, VisibleToAllUsers, JobFlowRole, ServiceRole, Tags, SecurityConfiguration, AutoScalingRole, ScaleDownBehavior, CustomAmiId, EbsRootVolumeSize, RepoUpgradeOnBoot, KerberosAttributes
 
 ### Running the project:
-1. Start redshift cluster: `make redshift-resume`
-1. Start emr cluster: `make emr-cluster-up`
-1. Terminate emr cluster: `make emr-cluster-down cluster-id=<CLUSTER_ID>`
-1. Pause redshift cluster: `make redshift-pause`
+1. Start redshift cluster: `make redshift-resume`;
+1. Start emr cluster: `make emr-cluster-up`;
+1. Start airflow: `make airflow`;
+1. Go to redshift to make some adhoc queries;
+1. Terminate emr cluster: `make emr-cluster-down cluster-id=<CLUSTER_ID>`;
+1. Pause redshift cluster: `make redshift-pause`;
 
 #### References
 
@@ -162,3 +169,11 @@ To install poetry with specific version:
 - [Redshift server configuration](https://docs.aws.amazon.com/redshift/latest/dg/t_Modifying_the_default_settings.html)
     - [Redshift statement timeout](https://docs.aws.amazon.com/redshift/latest/dg/r_statement_timeout.html)
 - [Airflow repo](https://github.com/puckel/docker-airflow)
+- [Spark on remote server](https://theckang.github.io/2015/12/31/remote-spark-jobs-on-yarn.html)
+- [GoCD for data pipeline](https://medium.com/@tamizhgeek/why-do-we-use-gocd-for-running-our-data-pipelines-6a027bf181a2)
+- [Customization of emr cluster (Boto3 API docs)](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/emr.html#EMR.Client.run_job_flow)
+- [Airflow EMR docs](https://airflow.readthedocs.io/en/latest/howto/operator/amazon/aws/emr.html)
+- [Spark steps config ref](https://docs.aws.amazon.com/cli/latest/reference/emr/add-steps.html)
+- []()
+- []()
+- []()

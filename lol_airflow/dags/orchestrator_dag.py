@@ -2,25 +2,28 @@ from datetime import datetime
 from os import path
 
 from airflow import DAG, LoggingMixin
-from airflow.contrib.hooks.ssh_hook import SSHHook
-from airflow.contrib.operators.ssh_operator import SSHOperator
+from airflow.contrib.operators.emr_create_job_flow_operator import \
+    EmrCreateJobFlowOperator
+from airflow.contrib.operators.emr_terminate_job_flow_operator import \
+    EmrTerminateJobFlowOperator
+from airflow.contrib.sensors.emr_job_flow_sensor import EmrJobFlowSensor
 from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
 
 from helpers import SqlDmls
+from operators import DataQualityOperator
+from operators import DdlRedshiftOperator
+from operators import EmrOperator
 from operators import (
     FetchAndStageItemsExternalData,
     FetchAndStageChampionsExternalData,
-    FetchAndStageMatchesExternalData,
     StageToRedshiftOperator, DataQualityValidator)
-from operators import EmrOperator
 from operators import LoadDimensionOperator
 from operators import LoadFactOperator
-from operators import DdlRedshiftOperator
-from operators import DataQualityOperator
 
 # CONFIG
 AWS_CREDENTIALS_ID = "aws_credentials"
+AWS_CREDENTIALS_EMR_ID = "aws_credentials_emr"
 AWS_REDSHIFT_CONN_ID = "redshift"
 RIOT_BASE_URL = ""
 S3_BUCKET = "udacity-capstone-lol"
@@ -130,13 +133,110 @@ stage_external_data_to_s3_task = DummyOperator(
 #     cluster_id=cluster_id,
 #     cluster_dns=cluster_dns,
 # )
-# emr_ssh_hook = SSHHook(ssh_conn_id="emr_ssh_connection")
-# transform_external_champion_data_and_stage_task = SSHOperator(
-#     task_id="Transform_External_Champion_Data_And_Stage_Task",
-#     command="TODO",
-#     ssh_hook=emr_ssh_hook,
-#     # dag=dag,
+# EMR
+SPARK_STEPS = [
+    {
+        'Name': 'lol_transform_raw_data',
+        'ActionOnFailure': 'TERMINATE_CLUSTER',
+        'HadoopJarStep': {
+            'Jar': 'command-runner.jar',
+            'Args': [
+                'spark-submit',
+                '--master',
+                'yarn',
+                's3://udacity-capstone-lol/lol_pyspark/spark_etl.py',
+            ],
+        }
+    }
+] # https://stackoverflow.com/questions/53048106/emr-dag-terminates-before-all-steps-are-completed
+JOB_FLOW_OVERRIDES = {
+    'Name': 'lol_spark',
+    'ReleaseLabel': 'emr-5.29.0',
+    "LogUri": f"s3://{S3_BUCKET}/emr_logs",
+    'Instances': {
+        'Ec2KeyName': 'lol-spark',
+        'InstanceGroups': [
+            {
+                'Name': 'Master node',
+                'Market': 'SPOT',
+                'InstanceRole': 'MASTER',
+                'InstanceType': 'm3.xlarge',
+                'InstanceCount': 1,
+            }
+        ],
+        'KeepJobFlowAliveWhenNoSteps': True,
+        'TerminationProtected': False,
+    },
+    'Steps': SPARK_STEPS,
+    'JobFlowRole': 'EMR_EC2_DefaultRole',
+    'ServiceRole': 'EMR_DefaultRole',
+    "Applications": [
+        {"Name": "Spark"}
+    ],
+    'BootstrapActions': [
+        {
+            'Name': 'install python dependencies',
+            'ScriptBootstrapAction': {
+                'Path': 's3://udacity-capstone-lol/lol_pyspark/install_python_modules.sh',
+            }
+        }
+    ],
+    # 'Configurations': [
+    #     {
+    #         'Classification': 'export',
+    #         'Properties': {
+    #             'PYSPARK_PYTHON': '/usr/bin/python3'
+    #         },
+    #     },
+    # ],
+}
+run_emr_create_job_flow_task = EmrCreateJobFlowOperator(
+    task_id="Emr_Create_Cluster_Task",
+    aws_conn_id=AWS_CREDENTIALS_EMR_ID,
+    emr_conn_id="emr_default",
+    region_name="us-west-2", # Remove deprecated
+    job_flow_overrides=JOB_FLOW_OVERRIDES,
+    do_xcom_push=True, # Remove deprecated
+    dag=dag,
+)
+emr_job_sensor = EmrJobFlowSensor(
+    task_id='check_job_flow',
+    job_flow_id="{{ task_instance.xcom_pull(task_ids='Emr_Create_Cluster_Task', key='return_value') }}",
+    aws_conn_id=AWS_CREDENTIALS_EMR_ID,
+    dag=dag,
+)
+
+# SPARK_STEPS = [{
+#     'Name': 'test step',
+#     'ActionOnFailure': 'CONTINUE',
+#     'HadoopJarStep': {
+#         'Jar': 'command-runner.jar',
+#         'Args': [
+#             'spark-submit', '--deploy-mode', 'cluster', '--class', 'com.naturalint.data.spark.api.scala.NiSparkAppMain', 's3://ni-data-infra/jars/feeder-factorization-etl-1.0-SNAPSHOT.jar', '--ni-main-class', 'com.naturalint.data.etl.feeder.FactorizationEtl', '--job-id', '133', '--config-file', 's3://galactic-feeder-staging/factorization_input/133.json', '--raw-conversions-table', 'galactic_feeder_staging.conversions_raw', '--previous-runs-table', 'galactic_feeder_staging.factorization_output_partitions', '--parquet-output-location', 's3://galactic-feeder-staging/factorization_output_partitions', '--csv-output-location', 's3://galactic-feeder-staging/output'
+#         ]
+#     }
+# }]
+# add_emr_step_task = EmrAddStepsOperator(
+#     aws_conn_id=AWS_CREDENTIALS_ID,
+#     job_flow_id="{{ task_instance.xcom_pull('Run_Emr_Create_Job_Flow_Task', key='return_value')[0] }}",
+#     # job_flow_name="",
+#     steps=SPARK_STEPS,
+#     do_xcom_push=True,
+#     dag=dag,
 # )
+# emr_step_sensor_task = EmrStepSensor(
+#     task_id="Watch_Previous_Step",
+#
+#     dag=dag,
+# )
+terminate_emr_cluster_task = EmrTerminateJobFlowOperator(
+    task_id="Emr_Terminate_Cluster",
+    aws_conn_id=AWS_CREDENTIALS_EMR_ID,
+    job_flow_id="{{ task_instance.xcom_pull('Run_Emr_Create_Job_Flow_Task', key='return_value')[0] }}",
+    trigger_rule="all_done", # Runs even when the job fails
+    dag=dag,
+)
+
 transform_external_item_data_and_stage_task = EmrOperator(
     task_id="Transform_External_Item_Data_And_Stage_Task",
     cluster_id=cluster_id,
@@ -234,7 +334,17 @@ end_operator = DummyOperator(
 
 
 # Validations
-start_operator >> run_redshift_ddls_task
+start_operator >> run_emr_create_job_flow_task
+# Previous
+# start_operator >> run_redshift_ddls_task
+
+# EMR
+run_emr_create_job_flow_task >> emr_job_sensor
+
+# EMR
+emr_job_sensor >> terminate_emr_cluster_task
+
+terminate_emr_cluster_task >> run_redshift_ddls_task
 
 run_redshift_ddls_task >> load_transformed_data_to_redshift_staging_tables_task
 

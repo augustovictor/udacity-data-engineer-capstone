@@ -148,3 +148,6 @@ data
 
 # Airflow settings
 airflow_settings.yml
+
+# Pem files
+*.pem
