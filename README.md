@@ -151,11 +151,12 @@ To install poetry with specific version:
     - `udacity-capstone-lol/lol_raw_data/champion`
     - `lol_transformed_raw_data/match`
 1. Start redshift cluster: `make redshift-resume`;
-1. Start emr cluster: `make emr-cluster-up`;
+1. (Only if executing from local machine) Open security-group to local machine(where the project is being executed);
 1. Start airflow: `make airflow`;
 1. Go to redshift to make some adhoc queries;
-1. Terminate emr cluster: `make emr-cluster-down cluster-id=<CLUSTER_ID>`;
 1. Pause redshift cluster: `make redshift-pause`;
+
+Ps: Emr cluster will be created and terminated by specific workflow steps;
 
 ### S3 bucket walkthrough
 - `udacity-capstone`: Bucket used for the whole workflow;
@@ -163,6 +164,11 @@ To install poetry with specific version:
 - `udacity-capstone/lol_transformed_raw_data`: Stores data transformed by spark processing;
 - `udacity-capstone/emr_logs`: Stores logs from emr processing;
 - `udacity-capstone/lol_pyspark`: Stores files to run on emr cluster;
+
+### Airflow
+- When a step fails and we want to mark it as success to run the next steps on:
+    - Go to the tasks timeline, mark select the task and mark as success;
+    - Go to Tree view and clear the task to run downstream;
 
 #### References
 
