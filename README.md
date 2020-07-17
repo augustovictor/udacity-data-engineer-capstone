@@ -66,6 +66,7 @@ To install poetry with specific version:
 - Airflow:
     - [] Fetch data daily with crawler;
     - [OK] Save data as-is to S3 (DL);
+    - [] Run data quality checks;
     - [OK] Transform the raw data with spark and save back to S3 in parquet format(stage area);
     - Run DDLs to Redshift;
         - [OK] Tables: `staging_game_match`, `dim_champion`, `dim_item`, `dim_summoner`, `fact_game_match`
@@ -145,6 +146,10 @@ To install poetry with specific version:
 - `JOB_FLOW_OVERRIDES` can have the following keys: "Classification", must be one of: Name, LogUri, AdditionalInfo, AmiVersion, ReleaseLabel, Instances, Steps, BootstrapActions, SupportedProducts, NewSupportedProducts, Applications, Configurations, VisibleToAllUsers, JobFlowRole, ServiceRole, Tags, SecurityConfiguration, AutoScalingRole, ScaleDownBehavior, CustomAmiId, EbsRootVolumeSize, RepoUpgradeOnBoot, KerberosAttributes
 
 ### Running the project:
+1. Delete the following folders in S3:
+    - `udacity-capstone-lol/lol_raw_data/item`
+    - `udacity-capstone-lol/lol_raw_data/champion`
+    - `lol_transformed_raw_data/match`
 1. Start redshift cluster: `make redshift-resume`;
 1. Start emr cluster: `make emr-cluster-up`;
 1. Start airflow: `make airflow`;
@@ -152,28 +157,46 @@ To install poetry with specific version:
 1. Terminate emr cluster: `make emr-cluster-down cluster-id=<CLUSTER_ID>`;
 1. Pause redshift cluster: `make redshift-pause`;
 
+### S3 bucket walkthrough
+- `udacity-capstone`: Bucket used for the whole workflow;
+- `udacity-capstone/lol_raw_data`: Stores data fetched from crawler;
+- `udacity-capstone/lol_transformed_raw_data`: Stores data transformed by spark processing;
+- `udacity-capstone/emr_logs`: Stores logs from emr processing;
+- `udacity-capstone/lol_pyspark`: Stores files to run on emr cluster;
+
 #### References
 
-- [Optimizing Performance](https://docs.aws.amazon.com/AmazonS3/latest/dev/optimizing-performance.html)
-- [Hadoop Scalability and Performance Testing in Heterogeneous Clusters](https://www.researchgate.net/publication/291356207_Hadoop_Scalability_and_Performance_Testing_in_Heterogeneous_Clusters)
-- [Scaling Uber’s Apache Hadoop Distributed File System for Growth](https://eng.uber.com/scaling-hdfs)
+##### Data
 - [Data dictionary](https://www.tutorialspoint.com/What-is-Data-Dictionary)
+
+##### Airflow
+- [Airflow EMR docs](https://airflow.readthedocs.io/en/latest/howto/operator/amazon/aws/emr.html)
+- [Airflow repo](https://github.com/puckel/docker-airflow)
+- [Airflow ssh operator](https://airflow.readthedocs.io/en/stable/howto/connection/ssh.html)
+- [TALK Airflow, Spark, EMR - Building a Batch Data Pipeline by Emma Tang](https://www.youtube.com/watch?v=Rm3_rDPTQgE)
+
+##### S3
+- [Optimizing Performance](https://docs.aws.amazon.com/AmazonS3/latest/dev/optimizing-performance.html)
+
+##### Spark ecosystem
 - [Building An Analytics Data Pipeline In Python](https://www.dataquest.io/blog/data-pipelines-tutorial)
-- [Redshift data types](https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html)
-- [Redshift numeric types](https://docs.aws.amazon.com/redshift/latest/dg/r_Numeric_types201.html)
+- [Customization of emr cluster (Boto3 API docs)](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/emr.html#EMR.Client.run_job_flow)
+- [GoCD for data pipeline](https://medium.com/@tamizhgeek/why-do-we-use-gocd-for-running-our-data-pipelines-6a027bf181a2)
+- [Hadoop Scalability and Performance Testing in Heterogeneous Clusters](https://www.researchgate.net/publication/291356207_Hadoop_Scalability_and_Performance_Testing_in_Heterogeneous_Clusters)
 - [Pyspark extension types](https://docs.aws.amazon.com/glue/latest/dg/aws-glue-api-crawler-pyspark-extensions-types.html)
 - [Remotely submit emr spark job](https://aws.amazon.com/premiumsupport/knowledge-center/emr-submit-spark-job-remote-cluster/)
+- [Scaling Uber’s Apache Hadoop Distributed File System for Growth](https://eng.uber.com/scaling-hdfs)
+- [Spark on remote server](https://theckang.github.io/2015/12/31/remote-spark-jobs-on-yarn.html)
+- [Spark steps config ref](https://docs.aws.amazon.com/cli/latest/reference/emr/add-steps.html)
 - [Terminate emr cluster](https://docs.aws.amazon.com/emr/latest/ManagementGuide/UsingEMR_TerminateJobFlow.html)
-- [Airflow ssh operator](https://airflow.readthedocs.io/en/stable/howto/connection/ssh.html)
+
+##### Redshift
 - [Authorizing COPY, UNLOAD, and CREATE EXTERNAL SCHEMA operations using IAM roles](https://docs.aws.amazon.com/redshift/latest/mgmt/copy-unload-iam-role.html)
+- [Aws tutorial - tuning table design](https://docs.aws.amazon.com/redshift/latest/dg/tutorial-tuning-tables.html)
+- [Redshift data types](https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html)
+- [Redshift dist keys 2](https://www.flydata.com/blog/amazon-redshift-distkey-and-sortkey)
+- [Redshift dist keys](https://hevodata.com/blog/redshift-distribution-keys)
+- [Redshift numeric types](https://docs.aws.amazon.com/redshift/latest/dg/r_Numeric_types201.html)
 - [Redshift server configuration](https://docs.aws.amazon.com/redshift/latest/dg/t_Modifying_the_default_settings.html)
     - [Redshift statement timeout](https://docs.aws.amazon.com/redshift/latest/dg/r_statement_timeout.html)
-- [Airflow repo](https://github.com/puckel/docker-airflow)
-- [Spark on remote server](https://theckang.github.io/2015/12/31/remote-spark-jobs-on-yarn.html)
-- [GoCD for data pipeline](https://medium.com/@tamizhgeek/why-do-we-use-gocd-for-running-our-data-pipelines-6a027bf181a2)
-- [Customization of emr cluster (Boto3 API docs)](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/emr.html#EMR.Client.run_job_flow)
-- [Airflow EMR docs](https://airflow.readthedocs.io/en/latest/howto/operator/amazon/aws/emr.html)
-- [Spark steps config ref](https://docs.aws.amazon.com/cli/latest/reference/emr/add-steps.html)
-- []()
-- []()
-- []()
+- [Redshift sort keys](https://hevodata.com/blog/redshift-sort-keys-choosing-best-sort-style)
