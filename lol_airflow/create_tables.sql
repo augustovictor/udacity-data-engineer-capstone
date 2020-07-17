@@ -117,7 +117,9 @@ CREATE TABLE IF NOT EXISTS staging_game_match (
     ts VARCHAR(50),
     year SMALLINT,
     month SMALLINT
-);
+)
+-- DISTSTYLE EVEN
+;
 
 DROP TABLE IF EXISTS fact_game_match;
 CREATE TABLE IF NOT EXISTS fact_game_match (
@@ -238,4 +240,7 @@ CREATE TABLE IF NOT EXISTS fact_game_match (
     ts VARCHAR(50),
     year SMALLINT,
     month SMALLINT
-);
+)
+-- DISTKEY (game_id)
+-- COMPOUND SORTKEY(game_creation, team_win)
+;
