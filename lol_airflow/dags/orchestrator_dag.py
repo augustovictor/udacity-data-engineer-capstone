@@ -4,8 +4,6 @@ from os import path
 from airflow import DAG, LoggingMixin
 from airflow.contrib.operators.emr_create_job_flow_operator import \
     EmrCreateJobFlowOperator
-from airflow.contrib.operators.emr_terminate_job_flow_operator import \
-    EmrTerminateJobFlowOperator
 from airflow.contrib.sensors.emr_job_flow_sensor import EmrJobFlowSensor
 from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
@@ -13,7 +11,6 @@ from airflow.operators.dummy_operator import DummyOperator
 from helpers import SqlDmls
 from operators import DataQualityOperator
 from operators import DdlRedshiftOperator
-from operators import EmrOperator
 from operators import (
     FetchAndStageItemsExternalData,
     FetchAndStageChampionsExternalData,
@@ -33,11 +30,10 @@ S3_RAW_ITEM_DATA_KEY = "lol_raw_data/item"
 S3_RAW_MATCH_DATA_KEY = "lol_raw_data/match"
 S3_TRANSFORMED_RAW_MATCH_DATA_KEY = "lol_transformed_raw_data/match"
 dag_id = "lol_etl"
-cluster_id = "change"
-cluster_dns = "change"
 iam_redshift_role="aws_iam_role=arn:aws:iam::782148276433:role/sparkify.dw.role"
 table_name_fact_game_match = "fact_game_match"
 table_name_staging_game_match = "staging_game_match"
+emr_create_cluster_task_id = "Emr_Create_Cluster_And_Execute_Processing_Task"
 
 default_args = {
     "owner": "Victor Costa",
@@ -107,7 +103,7 @@ fetch_external_champion_to_s3_data_task = FetchAndStageChampionsExternalData(
     base_url="http://ddragon.leagueoflegends.com/cdn/10.13.1/data/en_US",
     s3_bucket=S3_BUCKET,
     s3_key=S3_RAW_CHAMPION_DATA_KEY,
-    # dag=dag,
+    dag=dag,
 )
 fetch_external_item_to_s3_data_task = FetchAndStageItemsExternalData(
     task_id="Fetch_And_Stage_Items_External_Data",
@@ -115,7 +111,7 @@ fetch_external_item_to_s3_data_task = FetchAndStageItemsExternalData(
     base_url="http://ddragon.leagueoflegends.com/cdn/10.13.1/data/en_US/item.json",
     s3_bucket=S3_BUCKET,
     s3_key=S3_RAW_ITEM_DATA_KEY,
-    # dag=dag,
+    dag=dag,
 )
 # fetch_external_match_to_s3_data_task = FetchAndStageMatchesExternalData(
 #     task_id="Fetch_External_Match_To_S3_Data_Task",
@@ -164,7 +160,7 @@ JOB_FLOW_OVERRIDES = {
                 'InstanceCount': 1,
             }
         ],
-        'KeepJobFlowAliveWhenNoSteps': True,
+        'KeepJobFlowAliveWhenNoSteps': False,
         'TerminationProtected': False,
     },
     'Steps': SPARK_STEPS,
@@ -191,7 +187,7 @@ JOB_FLOW_OVERRIDES = {
     # ],
 }
 run_emr_create_job_flow_task = EmrCreateJobFlowOperator(
-    task_id="Emr_Create_Cluster_Task",
+    task_id=emr_create_cluster_task_id,
     aws_conn_id=AWS_CREDENTIALS_EMR_ID,
     emr_conn_id="emr_default",
     region_name="us-west-2", # Remove deprecated
@@ -201,7 +197,8 @@ run_emr_create_job_flow_task = EmrCreateJobFlowOperator(
 )
 emr_job_sensor = EmrJobFlowSensor(
     task_id='check_job_flow',
-    job_flow_id="{{ task_instance.xcom_pull(task_ids='Emr_Create_Cluster_Task', key='return_value') }}",
+    job_flow_id=f"{{{{ task_instance.xcom_pull(task_ids='{emr_create_cluster_task_id}', key='return_value') }}}}",
+    # step_id="{{ task_instance.xcom_pull(task_ids='TASK_TO_WATCH', key='return_value')[0] }}", # Here gos an EmrAddStepsOperator's id
     aws_conn_id=AWS_CREDENTIALS_EMR_ID,
     dag=dag,
 )
@@ -229,27 +226,27 @@ emr_job_sensor = EmrJobFlowSensor(
 #
 #     dag=dag,
 # )
-terminate_emr_cluster_task = EmrTerminateJobFlowOperator(
-    task_id="Emr_Terminate_Cluster",
-    aws_conn_id=AWS_CREDENTIALS_EMR_ID,
-    job_flow_id="{{ task_instance.xcom_pull('Run_Emr_Create_Job_Flow_Task', key='return_value')[0] }}",
-    trigger_rule="all_done", # Runs even when the job fails
-    dag=dag,
-)
+# terminate_emr_cluster_task = EmrTerminateJobFlowOperator(
+#     task_id="Emr_Terminate_Cluster",
+#     aws_conn_id=AWS_CREDENTIALS_EMR_ID,
+#     job_flow_id="{{ task_instance.xcom_pull('Run_Emr_Create_Job_Flow_Task', key='return_value') }}",
+#     trigger_rule="all_done", # Runs even when the job fails
+#     # dag=dag,
+# )
 
-transform_external_item_data_and_stage_task = EmrOperator(
-    task_id="Transform_External_Item_Data_And_Stage_Task",
-    cluster_id=cluster_id,
-    cluster_dns=cluster_dns,
-    # dag=dag,
-)
+# transform_external_item_data_and_stage_task = EmrOperator(
+#     task_id="Transform_External_Item_Data_And_Stage_Task",
+#     cluster_id=cluster_id,
+#     cluster_dns=cluster_dns,
+#     # dag=dag,
+# )
 # Ready on lol_pyspark
-transform_external_match_data_and_stage_task = EmrOperator(
-    task_id="Transform_External_Match_Data_And_Stage_Task",
-    cluster_id=cluster_id,
-    cluster_dns=cluster_dns,
-    # dag=dag,
-)
+# transform_external_match_data_and_stage_task = EmrOperator(
+#     task_id="Transform_External_Match_Data_And_Stage_Task",
+#     cluster_id=cluster_id,
+#     cluster_dns=cluster_dns,
+#     # dag=dag,
+# )
 run_redshift_ddls_task = DdlRedshiftOperator(
     task_id="Run_Redshift_DDLs_Task",
     redshift_conn_id=AWS_REDSHIFT_CONN_ID,
@@ -294,60 +291,30 @@ load_fact_match_table_task = LoadFactOperator(
     dql_sql=SqlDmls.match_table_insert,
     dag=dag,
 )
-data_quality_check_task = DataQualityOperator(
-    task_id="Data_Quality_Check_Task",
-    redshift_conn_id=AWS_REDSHIFT_CONN_ID,
-    data_quality_validations=[],
-    # dag=dag,
-)
 end_operator = DummyOperator(
     task_id="End_Execution",
     dag=dag,
 )
 
 # DAG
-# start_operator >> [
-#     # fetch_external_summoner_data_to_s3_task,
-#     fetch_external_champion_to_s3_data_task,
-#     fetch_external_item_to_s3_data_task,
-#     # fetch_external_match_to_s3_data_task,
-# ] >> stage_external_data_to_s3_task
-#
-# stage_external_data_to_s3_task >> [
-#     # transform_external_summoner_data_and_stage_task,
-#     transform_external_champion_data_and_stage_task,
-#     transform_external_item_data_and_stage_task,
-#     transform_external_match_data_and_stage_task,
-# ] >> run_redshift_ddls_task
-#
-# run_redshift_ddls_task >> load_transformed_data_to_redshift_staging_tables_task
-#
-# load_transformed_data_to_redshift_staging_tables_task >> [
-#     # load_summoner_dimension_table_task,
-#     load_champion_dimension_table_task,
-#     load_item_dimension_table_task,
-# ] >> load_fact_match_table_task
-#
-# load_fact_match_table_task >> data_quality_check_task
-#
-# data_quality_check_task >> end_operator
+start_operator >> [
+    fetch_external_champion_to_s3_data_task,
+    fetch_external_item_to_s3_data_task,
+] >> run_emr_create_job_flow_task
 
-
-# Validations
-start_operator >> run_emr_create_job_flow_task
-# Previous
-# start_operator >> run_redshift_ddls_task
-
-# EMR
 run_emr_create_job_flow_task >> emr_job_sensor
 
-# EMR
-emr_job_sensor >> terminate_emr_cluster_task
-
-terminate_emr_cluster_task >> run_redshift_ddls_task
+emr_job_sensor >> run_redshift_ddls_task
 
 run_redshift_ddls_task >> load_transformed_data_to_redshift_staging_tables_task
 
+# Uncomment after staging champion and item data
+# load_transformed_data_to_redshift_staging_tables_task >> [
+#     load_champion_dimension_table_task,
+#     load_item_dimension_table_task,
+# ] >> load_fact_match_table_task
+
+# Remove after staging champion and item data
 load_transformed_data_to_redshift_staging_tables_task >> load_fact_match_table_task
 
 load_fact_match_table_task >> run_quality_checks
